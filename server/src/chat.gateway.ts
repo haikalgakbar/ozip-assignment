@@ -10,8 +10,8 @@ import Redis from 'ioredis';
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
-  private redisClient = new Redis({ host: "localhost", port: 6379 });
-  private redisSubscriber = new Redis({ host: "localhost", port: 6379 });
+  private redisClient = new Redis({ host: process.env.REDIS_HOST || "localhost", port: parseInt(process.env.REDIS_PORT || "5000") });
+  private redisSubscriber = new Redis({ host: process.env.REDIS_HOST || "localhost", port: parseInt(process.env.REDIS_PORT || "5000") });
 
   constructor() {
     this.redisSubscriber.psubscribe("room:*");

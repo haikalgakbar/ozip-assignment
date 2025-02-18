@@ -11,7 +11,9 @@ import { Button } from "@/components/ui/button";
 
 import { ArrowLeft, User as UserIcon } from "lucide-react";
 
-const socket = io("http://localhost:8000");
+const socket = io(
+  `http://${process.env.NEXT_PUBLIC_SOCKETIO_HOST}:${process.env.NEXT_PUBLIC_SOCKETIO_PORT}`,
+);
 
 socket.on("connect", () => {
   console.log("Connected to server");
@@ -37,8 +39,6 @@ export default function Home() {
   const isMobile = width <= 768;
   const showChatList = !isMobile || chatWith === undefined;
   const showDetailChat = !isMobile || chatWith !== undefined;
-
-  console.log(width);
 
   function handleChatWith(user: User) {
     setChatWith(user);
