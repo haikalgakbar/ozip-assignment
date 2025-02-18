@@ -1,5 +1,6 @@
 import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import Redis from 'ioredis';
 
 @WebSocketGateway({
   cors: {
@@ -10,19 +11,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
+  private redisClient = new Redis({
+    host: "localhost",
+    port: 6379
+  });
   private connectedUser: {
     id: string,
     name: string,
-  }[] = []
-
-  private messageHistory: Map<string, {
-    roomId: string,
-    senderId: string,
-    senderName: string,
-    recipientId: string,
-    recipientName: string
-    message: string
-  }[]> = new Map()
+  }[] = [];
 
   handleConnection(client: Socket) {
     console.log(`Client connected: ${client.id}`);
@@ -43,15 +39,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('joinRoom')
-  handleJoinRoom(client: Socket, roomName: string) {
+  async handleJoinRoom(client: Socket, roomName: string) {
     client.join(roomName);
 
-    const history = this.messageHistory.get(roomName) || [];
-    client.emit('loadMessages', history);
+    const history = await this.redisClient.lrange(roomName, 0, -1)
+    const parsedHistory = history.map((msg) => JSON.parse(msg))
+
+    client.emit('loadMessages', parsedHistory);
   }
 
   @SubscribeMessage('sendMessage')
-  handleMessage(client: Socket, payload: {
+  async handleMessage(client: Socket, payload: {
     sender: {
       id: string,
       name: string,
@@ -71,10 +69,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
     const roomName = [sender.id, recipient.id].sort().join('-');
 
-    if (!this.messageHistory.has(roomName)) {
-      this.messageHistory.set(roomName, []);
-    }
-
     const message = {
       roomId: roomName,
       senderId: sender.id,
@@ -84,10 +78,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       message: sender.message,
     }
 
-    const roomMessages = this.messageHistory.get(roomName);
-    if (roomMessages) {
-      roomMessages.push(message);
-    }
+    await this.redisClient.rpush(roomName, JSON.stringify(message))
+
+    await this.redisClient.publish(roomName, JSON.stringify(message))
 
     client.to(roomName).emit('newMessage', message);
     client.emit('newMessage', message);
