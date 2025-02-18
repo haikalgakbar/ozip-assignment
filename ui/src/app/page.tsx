@@ -57,10 +57,7 @@ export default function Home() {
   if (!user) {
     return (
       <main className="flex h-dvh w-dvw items-center justify-center bg-neutral-950">
-        <section className="rounded-xl bg-neutral-900 p-4">
-          <header>
-            <h1>Start chat by inputing your name</h1>
-          </header>
+        <section className="w-full max-w-md rounded-xl bg-neutral-900 p-4">
           <LoginForm setUser={setUser} socket={socket} />
         </section>
       </main>

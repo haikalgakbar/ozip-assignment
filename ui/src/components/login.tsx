@@ -51,21 +51,26 @@ export function LoginForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex flex-col gap-4"
+      >
         <FormField
           control={form.control}
           name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel className="text-neutral-100">Name</FormLabel>
+              <FormLabel className="text-neutral-100">
+                Enter a name to continue
+              </FormLabel>
               <FormControl>
-                <Input placeholder="stelle" {...field} />
+                <Input placeholder="John Doe" className="" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" className="bg-neutral-800">
+        <Button type="submit" className="bg-neutral-800 hover:bg-neutral-700">
           Submit
         </Button>
       </form>
