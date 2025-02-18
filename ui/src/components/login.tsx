@@ -64,14 +64,14 @@ export function LoginForm({
                 Enter a name to continue
               </FormLabel>
               <FormControl>
-                <Input placeholder="John Doe" className="" {...field} />
+                <Input placeholder="John Doe" className="mt-2" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
         <Button type="submit" className="bg-neutral-800 hover:bg-neutral-700">
-          Submit
+          Start chatting
         </Button>
       </form>
     </Form>

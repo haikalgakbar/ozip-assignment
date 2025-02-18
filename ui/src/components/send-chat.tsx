@@ -6,6 +6,7 @@ import { z } from "zod";
 import { Socket } from "socket.io-client";
 
 import { Button } from "@/components/ui/button";
+import { Send } from "lucide-react";
 import {
   Form,
   FormControl,
@@ -53,6 +54,8 @@ export function SendChatForm({
     };
 
     socket.emit("sendMessage", message);
+
+    form.setValue("userMessage", "");
   }
 
   return (
@@ -68,14 +71,22 @@ export function SendChatForm({
             <FormItem className="w-full">
               <FormLabel className="sr-only">Send a Message</FormLabel>
               <FormControl>
-                <Input placeholder="Send a Message" {...field} />
+                <Input
+                  placeholder="Send a Message"
+                  className="m-0 border-none bg-transparent px-2 focus-visible:ring-0 focus-visible:ring-transparent focus-visible:ring-offset-0"
+                  {...field}
+                />
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
-        <Button type="submit" className="bg-neutral-800">
-          Submit
+        <Button
+          type="submit"
+          variant="ghost"
+          className="size-10 rounded-full hover:bg-neutral-800 hover:text-neutral-200"
+        >
+          <Send />
         </Button>
       </form>
     </Form>
