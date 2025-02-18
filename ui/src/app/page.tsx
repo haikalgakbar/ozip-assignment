@@ -1,10 +1,11 @@
 "use client";
 
 import { LoginForm } from "@/components/login";
-import { useState } from "react";
-import io, { Socket } from "socket.io-client";
+import { useEffect, useState } from "react";
+import io from "socket.io-client";
 import User from "@/type/user";
-import { Button } from "@/components/ui/button";
+import { SendChatForm } from "@/components/send-chat";
+import Image from "next/image";
 
 const socket = io("http://localhost:8000");
 
@@ -12,27 +13,54 @@ socket.on("connect", () => {
   console.log("Connected to server");
 });
 
-socket.on("welcome", (msg) => {
-  console.log(msg);
-});
+type MessageHistory = {
+  roomId: string;
+  senderId: string;
+  senderName: string;
+  recipientId: string;
+  recipientName: string;
+  message: string;
+};
 
 export default function Home() {
-  const [user, setUser] = useState<User>({ userName: "", displayName: "" });
-  const [chatList, setChatList] = useState<User[] | []>([]);
-
-  socket.on(
-    "updateUsers",
-    (userList: { userName: string; displayName: string }[]) => {
-      setChatList(userList);
-    },
+  const [user, setUser] = useState<User | undefined>(undefined);
+  const [connectedUser, setconnectedUser] = useState<User[] | []>([]);
+  const [chatWith, setChatWith] = useState<User | undefined>();
+  const [messageHistory, setMessageHistory] = useState<MessageHistory[] | []>(
+    [],
   );
 
-  console.log(chatList);
+  function handleChatWith(user: User) {
+    setChatWith(user);
+    const roomName = [socket.id, user.id].sort().join("-");
+    socket.emit("joinRoom", roomName);
+  }
 
-  if (!user.userName || !user.displayName) {
+  useEffect(() => {
+    socket.on("connectedUser", (connectedUser: User[]) => {
+      setconnectedUser(connectedUser.filter((user) => user.id !== socket.id));
+    });
+
+    socket.on("loadMessages", (history: MessageHistory[]) => {
+      setMessageHistory(history); // Set the message history in the state
+    });
+
+    socket.on("newMessage", (message: MessageHistory) => {
+      setMessageHistory((prevMessages) => [...prevMessages, message]);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
+  if (!user) {
     return (
       <main className="flex h-dvh w-dvw items-center justify-center bg-neutral-950">
         <section className="rounded-xl bg-neutral-900 p-4">
+          <header>
+            <h1>Start chat by inputing your name</h1>
+          </header>
           <LoginForm setUser={setUser} socket={socket} />
         </section>
       </main>
@@ -40,30 +68,49 @@ export default function Home() {
   }
 
   return (
-    <main className="grid h-dvh w-dvw grid-cols-12 items-center justify-center bg-neutral-950 p-2">
-      <aside className="col-span-2 flex h-full flex-col pe-2">
-        <ul className="flex-1 text-neutral-100">
-          {chatList
-            .filter((chat) => chat.userName != user.userName)
-            .map((chat) => (
-              <li className="rounded-xl bg-neutral-800 p-4" key={chat.userName}>
-                <h2>
-                  {chat.displayName} @{chat.userName}
-                </h2>
-                <p>Message</p>
-              </li>
-            ))}
+    <main className="grid min-h-dvh grid-cols-12 bg-neutral-950">
+      <aside className="col-span-2 flex h-dvh flex-col overflow-auto p-2 pe-0">
+        <ul className="flex flex-col gap-2 text-neutral-100">
+          {connectedUser.map((chat) => (
+            <li
+              className="w-full rounded-xl bg-neutral-800 p-4"
+              key={chat.id}
+              onClick={() => handleChatWith(chat)}
+            >
+              <h2>{chat.name}</h2>
+              <p>Message</p>
+            </li>
+          ))}
         </ul>
-        <section className="flex w-full items-center border-t border-t-neutral-700 pt-2 text-neutral-100">
-          <article className="w-full">
-            <h2>{user.displayName}</h2>
-            <h2>@{user.userName}</h2>
-          </article>
-          <Button>Logout</Button>
-        </section>
       </aside>
-      <section className="col-span-10 h-full rounded-xl bg-neutral-800 p-4">
-        <h1>Syudah login pack</h1>
+      <section className="col-span-10 m-2 max-h-dvh rounded-xl bg-neutral-800">
+        <div className="mx-auto flex h-full flex-col gap-2">
+          {chatWith === undefined ? (
+            <h1>Empty</h1>
+          ) : (
+            <>
+              <header className="flex items-center gap-2 p-2">
+                <div className="rounded-full bg-neutral-100 p-2">
+                  <Image
+                    src="/icon/iconUser.svg"
+                    width={24}
+                    height={24}
+                    alt="User picture"
+                  />
+                </div>
+                <h2>@{chatWith.name}</h2>
+              </header>
+              <ul className="flex-1 overflow-scroll">
+                {messageHistory.map((message) => (
+                  <article key={Math.random()} className="bg-neutral-700 p-4">
+                    {message.message}
+                  </article>
+                ))}
+              </ul>
+              <SendChatForm user={user} chatWith={chatWith} socket={socket} />
+            </>
+          )}
+        </div>
       </section>
     </main>
   );

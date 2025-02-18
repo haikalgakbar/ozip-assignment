@@ -1,6 +1,6 @@
 type User = {
-  userName: string
-  displayName: string
+  id: string
+  name: string
 }
 
 export default User

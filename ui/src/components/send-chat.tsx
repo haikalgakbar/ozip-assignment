@@ -15,51 +15,60 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Dispatch, SetStateAction } from "react";
 import User from "@/type/user";
 
 const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
+  userMessage: z.string().min(1, {
+    message: "Username must be at least 1 characters.",
   }),
 });
 
-export function LoginForm({
-  setUser,
+export function SendChatForm({
+  user,
+  chatWith,
   socket,
 }: {
-  setUser: Dispatch<SetStateAction<User | undefined>>;
+  user: User;
+  chatWith: User;
   socket: Socket;
 }) {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      name: "",
+      userMessage: "",
     },
   });
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    setUser({
-      id: socket.id as string,
-      name: values.name,
-    });
+    const message = {
+      sender: {
+        id: socket.id,
+        name: user.name,
+        message: values.userMessage,
+      },
+      recepient: {
+        id: chatWith.id,
+        name: chatWith.id,
+      },
+    };
 
-    socket.emit("setUser", {
-      name: values.name,
-    });
+    socket.emit("sendMessage", message);
   }
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form
+        onSubmit={form.handleSubmit(onSubmit)}
+        className="flex h-fit items-center p-4"
+      >
         <FormField
           control={form.control}
-          name="name"
+          name="userMessage"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-neutral-100">Name</FormLabel>
+            <FormItem className="w-full">
+              <FormLabel className="sr-only">Send a Message</FormLabel>
               <FormControl>
-                <Input placeholder="stelle" {...field} />
+                <Input placeholder="Send a Message" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
