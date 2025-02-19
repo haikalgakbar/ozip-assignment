@@ -40,6 +40,8 @@ export default function Home() {
   const showChatList = !isMobile || chatWith === undefined;
   const showDetailChat = !isMobile || chatWith !== undefined;
 
+  console.log(chatWith);
+
   function handleChatWith(user: User) {
     setChatWith(user);
     const roomName = [socket.id, user.id].sort().join("-");
@@ -84,7 +86,7 @@ export default function Home() {
             <ul className="flex flex-col gap-2 text-neutral-100">
               {connectedUser.map((chat) => (
                 <li
-                  className="flex w-full cursor-pointer items-center gap-2 rounded-xl p-4 hover:bg-neutral-800"
+                  className={`flex w-full cursor-pointer items-center gap-2 rounded-xl p-4 hover:bg-neutral-800 ${chatWith?.id === chat.id && "bg-neutral-800"}`}
                   key={chat.id}
                   onClick={() => handleChatWith(chat)}
                 >
@@ -113,39 +115,47 @@ export default function Home() {
       )}
       {showDetailChat && (
         <section
-          className={`col-span-full flex max-h-dvh flex-col text-neutral-200 md:col-span-8 xl:col-span-9 ${!isMobile && "m-2"}`}
+          className={`col-span-full flex max-h-dvh flex-col text-neutral-200 md:col-span-8 xl:col-span-9 ${!isMobile && "border-s border-neutral-800"}`}
         >
-          <header className="flex items-center gap-2 p-2">
-            {isMobile && (
-              <Button
-                variant="ghost"
-                onClick={() => {
-                  setChatWith(undefined);
-                }}
-                className="size-10 rounded-full p-2 hover:bg-neutral-800 hover:text-neutral-100"
-              >
-                <ArrowLeft size={24} strokeWidth={2} />
-              </Button>
-            )}
-            <div className="rounded-full bg-neutral-800 p-2 text-neutral-400">
-              <UserIcon />
-            </div>
-            <h2>{chatWith?.name}</h2>
-          </header>
-          <ul className="flex-1 overflow-y-scroll">
-            {messageHistory.map((message) => (
-              <article key={Math.random()} className="bg-neutral-700 p-4">
-                {message.senderName}:{message.message}
+          {chatWith ? (
+            <>
+              <header className="flex items-center gap-2 border-b border-neutral-800 p-4">
+                {isMobile && (
+                  <Button
+                    variant="ghost"
+                    onClick={() => {
+                      setChatWith(undefined);
+                    }}
+                    className="size-10 rounded-full p-2 hover:bg-neutral-800 hover:text-neutral-100"
+                  >
+                    <ArrowLeft size={24} strokeWidth={2} />
+                  </Button>
+                )}
+                <div className="rounded-full bg-neutral-800 p-2 text-neutral-400">
+                  <UserIcon />
+                </div>
+                <h2>{chatWith?.name}</h2>
+              </header>
+              <ul className="flex-1 overflow-y-scroll">
+                {messageHistory.map((message) => (
+                  <article key={Math.random()} className="bg-neutral-900 p-4">
+                    {message.senderName}:{message.message}
+                  </article>
+                ))}
+              </ul>
+              <article className="m-4 rounded-2xl bg-neutral-900">
+                <SendChatForm
+                  user={user}
+                  chatWith={chatWith as User}
+                  socket={socket}
+                />
               </article>
-            ))}
-          </ul>
-          <article className="m-4 rounded-2xl bg-neutral-900">
-            <SendChatForm
-              user={user}
-              chatWith={chatWith as User}
-              socket={socket}
-            />
-          </article>
+            </>
+          ) : (
+            <article className="flex flex-1 flex-col items-center justify-center">
+              <h1 className="text-neutral-100">Select a user to chat with</h1>
+            </article>
+          )}
         </section>
       )}
     </main>
