@@ -14,7 +14,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private redisSubscriber = new Redis({ host: process.env.REDIS_HOST || "localhost", port: parseInt(process.env.REDIS_PORT || "5000") });
 
   constructor() {
-    this.redisSubscriber.psubscribe("room:*");
+    this.redisSubscriber.psubscribe("*");
 
     this.redisSubscriber.on("pmessage", (_, channel, message) => {
       console.log(`Received message on channel ${channel}: ${message}`);
@@ -44,11 +44,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   @SubscribeMessage('joinRoom')
   async handleJoinRoom(client: Socket, roomName: string) {
-    const prefixedRoomName = `room:${roomName}`;
-    console.log(`Client ${client.id} joined room ${prefixedRoomName}`);
-    client.join(prefixedRoomName);
+    console.log(`Client ${client.id} joined room ${roomName}`);
+    client.join(roomName);
 
-    const history = await this.redisClient.lrange(prefixedRoomName, 0, -1);
+    const history = await this.redisClient.lrange(roomName, 0, -1);
     const parsedHistory = history.map((msg) => JSON.parse(msg));
     client.emit('loadMessages', parsedHistory);
   }
@@ -67,19 +66,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     const roomName = [sender.id, recipient.id].sort().join('-');
-    const prefixedRoomName = `room:${roomName}`;
     const message = {
-      roomId: roomName,
       senderId: sender.id,
       senderName: sender.name,
-      recipientId: recipient.id,
-      recipientName: recipient.name,
       message: sender.message,
+      timestap: new Date().toISOString(),
     };
 
-    await this.redisClient.rpush(prefixedRoomName, JSON.stringify(message));
-    await this.redisClient.publish(prefixedRoomName, JSON.stringify(message));
-    console.log(`Published message to ${prefixedRoomName}:`, message);
+    await this.redisClient.rpush(roomName, JSON.stringify(message));
+    await this.redisClient.publish(roomName, JSON.stringify(message));
+    console.log(`Published message to ${roomName}:`, message);
   }
 
   private broadcastUsers() {
