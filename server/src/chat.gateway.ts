@@ -1,7 +1,10 @@
 import { WebSocketGateway, WebSocketServer, OnGatewayConnection, OnGatewayDisconnect, SubscribeMessage } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import Redis from 'ioredis';
+import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 
+@Injectable()
 @WebSocketGateway({
   cors: {
     origin: "*",
@@ -10,28 +13,43 @@ import Redis from 'ioredis';
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
-  private redisClient = new Redis({ host: process.env.REDIS_HOST || "localhost", port: parseInt(process.env.REDIS_PORT || "5000") });
-  private redisSubscriber = new Redis({ host: process.env.REDIS_HOST || "localhost", port: parseInt(process.env.REDIS_PORT || "5000") });
 
-  constructor() {
+  private redisClient: Redis;
+  private redisSubscriber: Redis;
+  private connectedUser: { id: string, name: string }[] = [];
+
+  constructor(private configService: ConfigService) {
+    const redisHost = this.configService.get<string>('REDIS_HOST') || 'localhost';
+    const redisPort = this.configService.get<number>('REDIS_PORT') || 5000;
+
+    this.redisClient = new Redis({
+      host: redisHost,
+      port: redisPort,
+    });
+    this.redisSubscriber = new Redis({
+      host: redisHost,
+      port: redisPort,
+    });
+
     this.redisSubscriber.psubscribe("*");
-
     this.redisSubscriber.on("pmessage", (_, channel, message) => {
-      console.log(`Received message on channel ${channel}: ${message}`);
-      const parsedMessage = JSON.parse(message);
-
-      this.server.to(channel).emit("newMessage", parsedMessage);
+      try {
+        const parsedMessage = JSON.parse(message);
+        this.server.to(channel).emit("newMessage", parsedMessage);
+      } catch (err) {
+        console.log(err)
+      }
     });
   }
 
-  private connectedUser: { id: string, name: string }[] = [];
-
   handleConnection(client: Socket) {
-    console.log(`Client connected: ${client.id}`);
+    const timestamp = new Date().toISOString();
+    console.log(`${timestamp} - Client connected: ${client.id}`);
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
+    const timestamp = new Date().toISOString();
+    console.log(`${timestamp} - Client disconnected: ${client.id}`);
     this.connectedUser = this.connectedUser.filter((user) => user.id !== client.id);
     this.broadcastUsers();
   }
@@ -58,24 +76,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     recepient: { id: string, name: string }
   }) {
     const sender = payload.sender;
-    const recipient = payload.recepient;
+    const recepient = payload.recepient;
 
-    if (!sender || !recipient) {
+    if (!sender || !recepient) {
       client.emit('error', 'Invalid recipient');
       return;
     }
 
-    const roomName = [sender.id, recipient.id].sort().join('-');
+    const roomName = [sender.id, recepient.id].sort().join('-');
     const message = {
       senderId: sender.id,
       senderName: sender.name,
       message: sender.message,
-      timestap: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
     };
 
     await this.redisClient.rpush(roomName, JSON.stringify(message));
     await this.redisClient.publish(roomName, JSON.stringify(message));
-    console.log(`Published message to ${roomName}:`, message);
   }
 
   private broadcastUsers() {

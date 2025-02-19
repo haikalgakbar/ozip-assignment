@@ -8,6 +8,7 @@ import { SendChatForm } from "@/components/send-chat";
 import Image from "next/image";
 import { useWindowSize } from "@/lib/hooks";
 import { Button } from "@/components/ui/button";
+import { formatTimestamp } from "@/lib/utils";
 
 import { ArrowLeft, User as UserIcon } from "lucide-react";
 
@@ -20,12 +21,10 @@ socket.on("connect", () => {
 });
 
 type MessageHistory = {
-  roomId: string;
   senderId: string;
   senderName: string;
-  recipientId: string;
-  recipientName: string;
   message: string;
+  timestamp: string;
 };
 
 export default function Home() {
@@ -39,8 +38,6 @@ export default function Home() {
   const isMobile = width <= 768;
   const showChatList = !isMobile || chatWith === undefined;
   const showDetailChat = !isMobile || chatWith !== undefined;
-
-  console.log(chatWith);
 
   function handleChatWith(user: User) {
     setChatWith(user);
@@ -138,8 +135,15 @@ export default function Home() {
               </header>
               <ul className="flex-1 overflow-y-scroll">
                 {messageHistory.map((message) => (
-                  <article key={Math.random()} className="bg-neutral-900 p-4">
-                    {message.senderName}:{message.message}
+                  <article
+                    key={message.senderId + message.timestamp}
+                    className="flex items-center gap-1 bg-neutral-900 p-4"
+                  >
+                    <span className="text-xs text-neutral-400">
+                      {formatTimestamp(message.timestamp)}
+                    </span>
+                    <h3 className="font-semibold">{message.senderName}</h3>
+                    <p>{message.message}</p>
                   </article>
                 ))}
               </ul>

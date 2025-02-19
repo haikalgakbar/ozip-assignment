@@ -6,7 +6,10 @@ import { ChatGateway } from './chat.gateway';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: '.env',
+    }),
   ],
   controllers: [AppController],
   providers: [AppService, ChatGateway],
