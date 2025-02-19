@@ -19,8 +19,8 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private connectedUser: { id: string, name: string }[] = [];
 
   constructor(private configService: ConfigService) {
-    const redisHost = this.configService.get<string>('REDIS_HOST') || 'localhost';
-    const redisPort = this.configService.get<number>('REDIS_PORT') || 5000;
+    const redisHost = this.configService.get<string>('REDIS_HOST') || 'redis-db';
+    const redisPort = this.configService.get<number>('REDIS_PORT') || 6379;
 
     this.redisClient = new Redis({
       host: redisHost,
