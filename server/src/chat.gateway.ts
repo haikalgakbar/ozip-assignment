@@ -26,10 +26,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       host: redisHost,
       port: redisPort,
     });
-    this.redisSubscriber = new Redis({
-      host: redisHost,
-      port: redisPort,
-    });
+    this.redisSubscriber = this.redisClient.duplicate();
 
     this.redisSubscriber.psubscribe("*");
     this.redisSubscriber.on("pmessage", (_, channel, message) => {

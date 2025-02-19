@@ -1,0 +1,39 @@
+services:
+  redis:
+    image: redis:alpine
+    container_name: redis-db
+    ports:
+      - "6379:6379"
+    networks:
+      - app-network
+
+  nestjs-app:
+    image: nestjs # Use the pre-built image
+    container_name: nestjs-app
+    depends_on:
+      - redis # If you still have Redis in your compose file
+    ports:
+      - "4000:4000"
+    networks:
+      - app-network
+    environment:
+      - REDIS_HOST=redis-db
+      - REDIS_PORT=6379
+      - PORT=4000
+
+  nextjs-app:
+    image: nextjs # Use the pre-built image
+    container_name: nextjs-app
+    ports:
+      - "3000:3000"
+    depends_on:
+      - nestjs-app
+    networks:
+      - app-network
+    environment:
+      - PORT=3000
+      - NEXT_PUBLIC_SOCKETIO_HOST=localhost
+      - NEXT_PUBLIC_SOCKETIO_PORT=4000
+
+networks:
+  app-network:
